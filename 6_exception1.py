@@ -10,11 +10,19 @@
     
 """
 
+
 def hello_user():
     """
     Замените pass на ваш код
     """
-    pass
-    
+    answer = ' '
+    while answer.lower().capitalize() != 'Хорошо':
+        try:
+            answer = input('Как дела?\n')
+        except KeyboardInterrupt:
+            print("Пока!")
+            break
+
+
 if __name__ == "__main__":
     hello_user()
