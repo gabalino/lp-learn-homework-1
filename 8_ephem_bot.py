@@ -13,7 +13,8 @@
 
 """
 import logging
-
+from os import getenv
+import ephem
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
@@ -21,37 +22,50 @@ logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
                     filename='bot.log')
 
 
-PROXY = {
-    'proxy_url': 'socks5://t1.learn.python.ru:1080',
-    'urllib3_proxy_kwargs': {
-        'username': 'learn',
-        'password': 'python'
-    }
-}
-
-
 def greet_user(update, context):
-    text = 'Вызван /start'
+    print('Вызван /start')
+    user_name = update._effective_user.first_name
+    update.message.reply_text(f'Здравствуй, {user_name}!')
+
+
+def get_planet(update, context):
+    result = ''
+    text = update.message.text
+    params = text.split()
+    if len(params) > 1:
+        planet_name = params[1].strip().capitalize()
+        if hasattr(ephem, planet_name):
+            planet_class = getattr(ephem, planet_name)
+            planet = planet_class()
+            planet.compute()
+            constellation = ephem.constellation(planet)
+            result = f'Сегодня {planet_name} находится в созвездии {constellation}'
+        else:
+            result = 'Неизвестная планета'
+    else:
+        result = 'Введите /planet <название планеты>'
+    update.message.reply_text(result)
+    return result
+
+
+def talk_to_me(update, context):
+    text = update.message.text
     print(text)
     update.message.reply_text(text)
 
 
-def talk_to_me(update, context):
-    user_text = update.message.text
-    print(user_text)
-    update.message.reply_text(text)
-
-
 def main():
-    mybot = Updater("КЛЮЧ, КОТОРЫЙ НАМ ВЫДАЛ BotFather", request_kwargs=PROXY, use_context=True)
+    mybot = Updater(token=getenv("TG_BOT_TOKEN"), use_context=True)
+    if mybot:
+        dp = mybot.dispatcher
+        dp.add_handler(CommandHandler("start", greet_user))
+        dp.add_handler(CommandHandler("planet", get_planet))
+        dp.add_handler(MessageHandler(Filters.text, talk_to_me))
 
-    dp = mybot.dispatcher
-    dp.add_handler(CommandHandler("start", greet_user))
-    dp.add_handler(MessageHandler(Filters.text, talk_to_me))
-
-    mybot.start_polling()
-    mybot.idle()
-
+        mybot.start_polling()
+        mybot.idle()
+    else:
+        print('Переменая TG_BOT_TOKEN не найдена!')
 
 if __name__ == "__main__":
     main()
